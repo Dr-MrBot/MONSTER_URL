@@ -17,18 +17,19 @@ A lightweight, multi-platform Flask console built for real-time target telemetry
 
 ---
 
-## 📸 Screenshots
+## 📸 Interface Screenshots
 
-<p align="center">
-  <img src="screenshots/1.png" width="31%" alt="Console Dashboard">
-  <img src="screenshots/2.png" width="31%" alt="Live Map">
-  <img src="screenshots/3.png" width="31%" alt="Telemetry Logs">
-</p>
-<p align="center">
-  <img src="screenshots/4.png" width="31%" alt="Submissions Panel">
-  <img src="screenshots/5.png" width="31%" alt="Media Vault">
-  <img src="screenshots/6.png" width="31%" alt="Responsive Mobile View">
-</p>
+<div align="center">
+
+| **Console Dashboard** | **Live Target Map** | **Telemetry Activity Log** |
+| :---: | :---: | :---: |
+| <img src="screenshots/1.png" width="280" alt="Console Dashboard"> | <img src="screenshots/2.png" width="280" alt="Live Map"> | <img src="screenshots/3.png" width="280" alt="Telemetry Logs"> |
+
+| **Participant Submissions** | **Captured Media Vault** | **Responsive Mobile UI** |
+| :---: | :---: | :---: |
+| <img src="screenshots/4.png" width="280" alt="Submissions"> | <img src="screenshots/5.png" width="280" alt="Media Vault"> | <img src="screenshots/6.png" width="280" alt="Responsive UI"> |
+
+</div>
 
 ---
 

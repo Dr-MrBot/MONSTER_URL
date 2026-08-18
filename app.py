@@ -5,6 +5,7 @@ import time
 import uuid
 import secrets
 import sqlite3
+import shutil
 import subprocess
 import threading
 from pathlib import Path
@@ -92,10 +93,14 @@ class TunnelManager(threading.Thread):
         TUNNEL_STATUS["provider"] = "Cloudflare Tunnel"
         
         # Determine cloudflared executable name/location
-        cloudflared_bin = "cloudflared"
+        cloudflared_bin = shutil.which("cloudflared")
         local_exe = BIN_DIR / ("cloudflared.exe" if os.name == "nt" else "cloudflared")
-        if local_exe.exists():
+        if local_exe.exists() and os.access(local_exe, os.X_OK):
             cloudflared_bin = str(local_exe)
+        elif not cloudflared_bin and local_exe.exists():
+            cloudflared_bin = str(local_exe)
+        if not cloudflared_bin:
+            cloudflared_bin = "cloudflared"
 
         try:
             cmd = [cloudflared_bin, "tunnel", "--url", f"http://127.0.0.1:{self.port}"]

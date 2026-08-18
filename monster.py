@@ -39,17 +39,25 @@ def check_dependencies():
         print(" [*] Downloading Cloudflare Tunnel binary (cloudflared)...")
         try:
             import urllib.request
+            machine = platform.machine().lower()
             if os.name == "nt":
                 cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+            elif "aarch64" in machine or "arm64" in machine:
+                cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
+            elif "arm" in machine:
+                cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm"
+            elif "386" in machine or "i686" in machine:
+                cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-386"
             else:
                 cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
             
+            print(f" [+] Architecture detected ({machine}). Downloading from: {cf_url}")
             urllib.request.urlretrieve(cf_url, cloudflared_path)
             if os.name != "nt":
                 os.chmod(cloudflared_path, 0o755)
             print(" [✓] Cloudflare Tunnel binary downloaded successfully!")
         except Exception as err:
-            print(f" [!] Notice: Automatic cloudflared download fallback to SSH tunnel: {err}")
+            print(f" [!] Notice: Automatic cloudflared download failed: {err}")
 
 def main():
     print(r"""
