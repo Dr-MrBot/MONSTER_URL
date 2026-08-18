@@ -35,7 +35,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
-ADMIN_PASS = os.environ.get("ADMIN_PASS", "changeme123")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "admin")
 ADMIN_HASH = generate_password_hash(ADMIN_PASS)
 
 import atexit
