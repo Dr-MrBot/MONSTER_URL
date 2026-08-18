@@ -6,6 +6,7 @@ import uuid
 import secrets
 import sqlite3
 import shutil
+import platform
 import subprocess
 import threading
 from pathlib import Path
