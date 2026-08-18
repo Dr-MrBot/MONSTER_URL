@@ -17,19 +17,49 @@ A lightweight, multi-platform Flask console built for real-time target telemetry
 
 ---
 
-## 📸 Interface Screenshots
+## 📸 Interface Preview & Screenshots
 
-<div align="center">
+<p align="center">
+  <img src="screenshots/1.png" alt="Terminal Launcher & Cloudflare Tunnel" width="100%">
+  <br>
+  <b>🖥️ 1. Terminal Launcher & Auto Cloudflare Tunnel</b>
+</p>
+<br>
 
-| **Console Dashboard** | **Live Target Map** | **Telemetry Activity Log** |
-| :---: | :---: | :---: |
-| <img src="screenshots/1.png" width="280" alt="Console Dashboard"> | <img src="screenshots/2.png" width="280" alt="Live Map"> | <img src="screenshots/3.png" width="280" alt="Telemetry Logs"> |
+<p align="center">
+  <img src="screenshots/2.png" alt="Admin Authentication Console" width="100%">
+  <br>
+  <b>🔐 2. Admin Security Authentication Console</b>
+</p>
+<br>
 
-| **Participant Submissions** | **Captured Media Vault** | **Responsive Mobile UI** |
-| :---: | :---: | :---: |
-| <img src="screenshots/4.png" width="280" alt="Submissions"> | <img src="screenshots/5.png" width="280" alt="Media Vault"> | <img src="screenshots/6.png" width="280" alt="Responsive UI"> |
+<p align="center">
+  <img src="screenshots/3.png" alt="Target Link & Lure Generator" width="100%">
+  <br>
+  <b>🔗 3. Public Target Link & Lure Generator</b>
+</p>
+<br>
 
-</div>
+<p align="center">
+  <img src="screenshots/4.png" alt="Live Telemetry & Footprint Activity Log" width="100%">
+  <br>
+  <b>📊 4. Live Telemetry & Device Footprinting Logs</b>
+</p>
+<br>
+
+<p align="center">
+  <img src="screenshots/5.png" alt="Participant Intake & Submissions Table" width="100%">
+  <br>
+  <b>📝 5. Participant Intake & Form Submissions</b>
+</p>
+<br>
+
+<p align="center">
+  <img src="screenshots/6.png" alt="Captured Media Vault (Webcam & Audio)" width="100%">
+  <br>
+  <b>📷 6. Captured Media Vault (Webcam Photos & Audio Recordings)</b>
+</p>
+
 
 ---
 
