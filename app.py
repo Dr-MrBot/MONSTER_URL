@@ -62,16 +62,20 @@ class TunnelManager(threading.Thread):
             print(f"\n[MONSTER_URL 2.0] Using predefined Public URL: {GLOBAL_TUNNEL_URL}\n")
             return
 
+        is_termux = "TERMUX_VERSION" in os.environ or os.path.exists("/data/data/com.termux")
+        is_linux = platform.system().lower() == "linux"
+
         while True:
-            # On Termux or Linux, prioritize Ngrok if NGROK_AUTHTOKEN / pyngrok is available
+            # On Termux or Linux, prioritize Ngrok
             if self.try_ngrok():
                 self.wait_and_reconnect()
                 continue
 
-            # Attempt 1: Cloudflare Tunnel (cloudflared)
-            if self.try_cloudflare():
-                self.wait_and_reconnect()
-                continue
+            # Skip Cloudflare on Termux to prevent trycloudflare API errors
+            if not is_termux:
+                if self.try_cloudflare():
+                    self.wait_and_reconnect()
+                    continue
 
             # Attempt 2: Serveo SSH Tunnel
             if self.try_serveo():
