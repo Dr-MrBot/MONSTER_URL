@@ -1,0 +1,22 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.db
+tracker.db
+
+# Executables & Binaries
+bin/
+*.exe
+
+# User Uploaded Media
+media/*
+!media/.gitkeep
+
+# Environment variables
+.env
+.venv
+env/
+venv/

