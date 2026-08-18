@@ -38,6 +38,8 @@ ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "changeme123")
 ADMIN_HASH = generate_password_hash(ADMIN_PASS)
 
+import atexit
+
 GLOBAL_TUNNEL_URL = os.environ.get("PUBLIC_URL", "")
 TUNNEL_STATUS = {
     "active": False,
@@ -46,13 +48,25 @@ TUNNEL_STATUS = {
     "error": None
 }
 
-# ---------------- Tunnel Manager ----------------
+# ---------------- Tunnel Manager (Cloudflare Primary) ----------------
 class TunnelManager(threading.Thread):
     def __init__(self, port=5000):
         super().__init__()
         self.port = port
         self.daemon = True
         self.process = None
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        if self.process and self.process.poll() is None:
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=2)
+            except Exception:
+                try:
+                    self.process.kill()
+                except Exception:
+                    pass
 
     def run(self):
         global GLOBAL_TUNNEL_URL, TUNNEL_STATUS
@@ -63,105 +77,100 @@ class TunnelManager(threading.Thread):
             print(f"\n[MONSTER_URL 2.0] Using predefined Public URL: {GLOBAL_TUNNEL_URL}\n")
             return
 
-        is_termux = "TERMUX_VERSION" in os.environ or os.path.exists("/data/data/com.termux")
-        is_linux = platform.system().lower() == "linux"
-
         while True:
-            # On Termux or Linux, prioritize Ngrok
-            if self.try_ngrok():
+            # Primary Method: Zero-Configuration Cloudflare Tunnel (TryCloudflare)
+            if self.try_cloudflare():
                 self.wait_and_reconnect()
                 continue
 
-            # Skip Cloudflare on Termux to prevent trycloudflare API errors
-            if not is_termux:
-                if self.try_cloudflare():
-                    self.wait_and_reconnect()
-                    continue
-
-            # Attempt 2: Serveo SSH Tunnel
+            # Fallback 1: Serveo SSH Tunnel
             if self.try_serveo():
                 self.wait_and_reconnect()
                 continue
 
-            # Attempt 3: Localhost.run SSH Tunnel
+            # Fallback 2: Localhost.run SSH Tunnel
             if self.try_localhost_run():
                 self.wait_and_reconnect()
                 continue
 
             TUNNEL_STATUS["active"] = False
             TUNNEL_STATUS["provider"] = "Local Only"
-            TUNNEL_STATUS["error"] = "Could not establish automatic tunnel. Retrying in 10s..."
-            print(f"\n[MONSTER_URL 2.0] Tunnel dropped. Retrying public tunnel connection in 10 seconds...\n")
+            TUNNEL_STATUS["error"] = "Could not establish automatic public tunnel. Retrying in 10s..."
+            print(f"\n[MONSTER_URL 2.0] Public tunnel unavailable. Retrying in 10 seconds...\n")
             time.sleep(10)
-
-    def try_ngrok(self):
-        global GLOBAL_TUNNEL_URL, TUNNEL_STATUS
-        authtoken = os.environ.get("NGROK_AUTHTOKEN", "").strip()
-        if not authtoken:
-            return False
-
-        TUNNEL_STATUS["provider"] = "Ngrok Tunnel"
-        try:
-            from pyngrok import ngrok, conf
-            ngrok.set_auth_token(authtoken)
-            tunnel = ngrok.connect(self.port, "http")
-            url = tunnel.public_url.replace("http://", "https://")
-            GLOBAL_TUNNEL_URL = url
-            TUNNEL_STATUS["active"] = True
-            TUNNEL_STATUS["url"] = url
-            print(f"\n" + "="*60)
-            print(f" 🔥 MONSTER_URL 2.0 NGROK PUBLIC TUNNEL ACTIVE!")
-            print(f" 🌐 Public HTTPS URL: {url}")
-            print(f" 🛡 Provider: Ngrok Tunnel")
-            print("="*60 + "\n")
-            return True
-        except Exception as e:
-            print(f"[TunnelManager] Ngrok failed: {e}")
-            return False
 
     def wait_and_reconnect(self):
         if self.process:
             self.process.wait()
-        global TUNNEL_STATUS
+        global GLOBAL_TUNNEL_URL, TUNNEL_STATUS
         TUNNEL_STATUS["active"] = False
+        TUNNEL_STATUS["url"] = ""
+        GLOBAL_TUNNEL_URL = ""
         print(f"\n[MONSTER_URL 2.0] Public Tunnel process ended. Auto-reconnecting...\n")
         time.sleep(3)
+
+    def get_cloudflared_bin(self):
+        # 1. System PATH
+        which_path = shutil.which("cloudflared")
+        if which_path:
+            return which_path
+
+        # 2. Local bin/ folder
+        local_exe = BIN_DIR / ("cloudflared.exe" if os.name == "nt" else "cloudflared")
+        if local_exe.exists():
+            if os.name != "nt" and not os.access(local_exe, os.X_OK):
+                try:
+                    os.chmod(local_exe, 0o755)
+                except Exception:
+                    pass
+            return str(local_exe)
+
+        # 3. Termux PATH fallback
+        termux_bin = Path("/data/data/com.termux/files/usr/bin/cloudflared")
+        if termux_bin.exists():
+            return str(termux_bin)
+
+        return None
 
     def try_cloudflare(self):
         global GLOBAL_TUNNEL_URL, TUNNEL_STATUS
         TUNNEL_STATUS["provider"] = "Cloudflare Tunnel"
         
-        # Determine cloudflared executable name/location
-        cloudflared_bin = shutil.which("cloudflared")
-        local_exe = BIN_DIR / ("cloudflared.exe" if os.name == "nt" else "cloudflared")
-        if local_exe.exists() and os.access(local_exe, os.X_OK):
-            cloudflared_bin = str(local_exe)
-        elif not cloudflared_bin and local_exe.exists():
-            cloudflared_bin = str(local_exe)
+        cloudflared_bin = self.get_cloudflared_bin()
         if not cloudflared_bin:
-            cloudflared_bin = "cloudflared"
+            print("[TunnelManager] cloudflared binary not found in PATH or bin/ directory.")
+            return False
 
         try:
-            cmd = [cloudflared_bin, "tunnel", "--url", f"http://127.0.0.1:{self.port}"]
+            cmd = [cloudflared_bin, "tunnel", "--url", f"http://127.0.0.1:{self.port}", "--no-autoupdate"]
             self.process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
             )
             
             start_time = time.time()
-            while time.time() - start_time < 25:
+            while time.time() - start_time < 30:
+                if self.process.poll() is not None:
+                    break
                 line = self.process.stdout.readline()
                 if not line:
-                    break
-                match = re.search(r"https://[-a-zA-Z0-9.]+\.trycloudflare\.com", line)
+                    time.sleep(0.1)
+                    continue
+                match = re.search(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", line)
                 if match:
-                    url = match.group(0)
+                    url = match.group(0).strip()
                     GLOBAL_TUNNEL_URL = url
                     TUNNEL_STATUS["active"] = True
                     TUNNEL_STATUS["url"] = url
+                    TUNNEL_STATUS["provider"] = "Cloudflare Tunnel"
+                    TUNNEL_STATUS["error"] = None
                     print(f"\n" + "="*60)
-                    print(f" 🔥 MONSTER_URL 2.0 PUBLIC TUNNEL ACTIVE!")
+                    print(f" 🔥 MONSTER_URL 2.0 CLOUDFLARE PUBLIC TUNNEL ACTIVE!")
                     print(f" 🌐 Public HTTPS URL: {url}")
-                    print(f" 🛡 Provider: Cloudflare TryCloudflare")
+                    print(f" 🛡 Provider: Cloudflare TryCloudflare (Zero-Config)")
                     print("="*60 + "\n")
                     
                     def monitor(proc):
@@ -183,23 +192,30 @@ class TunnelManager(threading.Thread):
         try:
             cmd = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ServerAliveInterval=30", "-R", f"80:127.0.0.1:{self.port}", "serveo.net"]
             self.process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
             )
             
             start_time = time.time()
             while time.time() - start_time < 20:
+                if self.process.poll() is not None:
+                    break
                 line = self.process.stdout.readline()
                 if not line:
-                    break
+                    time.sleep(0.1)
+                    continue
                 match = re.search(r"https://[-a-zA-Z0-9.]+\.serveo\.net", line)
                 if match:
-                    url = match.group(0)
+                    url = match.group(0).strip()
                     GLOBAL_TUNNEL_URL = url
                     TUNNEL_STATUS["active"] = True
                     TUNNEL_STATUS["url"] = url
+                    TUNNEL_STATUS["provider"] = "Serveo SSH Tunnel"
+                    TUNNEL_STATUS["error"] = None
                     print(f"\n" + "="*60)
                     print(f" 🔥 MONSTER_URL 2.0 PUBLIC TUNNEL ACTIVE!")
                     print(f" 🌐 Public HTTPS URL: {url}")
+                    print(f" 🛡 Provider: Serveo SSH Tunnel")
+                    print("="*60 + "\n")
                     def monitor(proc):
                         global GLOBAL_TUNNEL_URL, TUNNEL_STATUS
                         while proc.poll() is None:
@@ -219,23 +235,28 @@ class TunnelManager(threading.Thread):
         try:
             cmd = ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:127.0.0.1:{self.port}", "nokey@localhost.run"]
             self.process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
             )
             start_time = time.time()
             while time.time() - start_time < 20:
+                if self.process.poll() is not None:
+                    break
                 line = self.process.stdout.readline()
                 if not line:
-                    break
+                    time.sleep(0.1)
+                    continue
                 match = re.search(r"https://[-a-zA-Z0-9.]+\.lhr\.life", line) or re.search(r"https://[-a-zA-Z0-9.]+\.lhrtunnel\.link", line)
                 if match:
-                    url = match.group(0)
+                    url = match.group(0).strip()
                     GLOBAL_TUNNEL_URL = url
                     TUNNEL_STATUS["active"] = True
                     TUNNEL_STATUS["url"] = url
+                    TUNNEL_STATUS["provider"] = "localhost.run SSH Tunnel"
+                    TUNNEL_STATUS["error"] = None
                     print(f"\n" + "="*60)
                     print(f" 🔥 MONSTER_URL 2.0 PUBLIC TUNNEL ACTIVE!")
                     print(f" 🌐 Public HTTPS URL: {url}")
-                    print(f" 🛡 Provider: localhost.run")
+                    print(f" 🛡 Provider: localhost.run SSH Tunnel")
                     print("="*60 + "\n")
                     def monitor(proc):
                         global GLOBAL_TUNNEL_URL, TUNNEL_STATUS

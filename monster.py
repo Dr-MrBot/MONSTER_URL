@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 👾 MONSTER_URL 2.0 — Cross-Platform Interactive Launcher
-Supports: Windows, Linux, Android (Termux)
+Supports: Windows, Linux, Android (Termux), macOS
+Zero-Configuration Cloudflare Tunneling
 """
 
 import os
@@ -9,6 +10,7 @@ import sys
 import subprocess
 import shutil
 import platform
+from pathlib import Path
 
 def load_env():
     env_path = os.path.join(os.path.dirname(__file__), ".env")
@@ -34,10 +36,6 @@ def check_dependencies():
         import requests
     except ImportError:
         missing.append("requests")
-    try:
-        import pyngrok
-    except ImportError:
-        missing.append("pyngrok")
         
     if missing:
         print(f" [+] Installing missing packages: {', '.join(missing)}...")
@@ -50,15 +48,37 @@ def check_dependencies():
     # Check/Download cloudflared binary into bin/ if missing
     bin_dir = os.path.join(os.path.dirname(__file__), "bin")
     os.makedirs(bin_dir, exist_ok=True)
-    cloudflared_path = os.path.join(bin_dir, "cloudflared.exe" if os.name == "nt" else "cloudflared")
+    exe_name = "cloudflared.exe" if os.name == "nt" else "cloudflared"
+    cloudflared_path = os.path.join(bin_dir, exe_name)
+
+    is_termux = "TERMUX_VERSION" in os.environ or os.path.exists("/data/data/com.termux")
+    
+    # On Termux, attempt pkg install cloudflared if not present
+    if is_termux and not shutil.which("cloudflared") and not os.path.exists(cloudflared_path):
+        try:
+            print(" [*] Termux detected. Checking for native cloudflared package...")
+            subprocess.run(["pkg", "install", "-y", "tur-repo"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            subprocess.run(["pkg", "install", "-y", "cloudflared"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        except Exception:
+            pass
 
     if not shutil.which("cloudflared") and not os.path.exists(cloudflared_path):
-        print(" [*] Downloading Cloudflare Tunnel binary (cloudflared)...")
+        print(" [*] Cloudflare Tunnel binary (cloudflared) not found. Downloading...")
         try:
             import urllib.request
+            sys_name = platform.system().lower()
             machine = platform.machine().lower()
-            if os.name == "nt":
-                cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+            
+            if os.name == "nt" or sys_name == "windows":
+                if "64" in machine or "amd64" in machine or "x86_64" in machine:
+                    cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+                else:
+                    cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-386.exe"
+            elif "darwin" in sys_name:
+                if "arm64" in machine or "aarch64" in machine:
+                    cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
+                else:
+                    cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
             elif "aarch64" in machine or "arm64" in machine:
                 cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
             elif "arm" in machine:
@@ -68,49 +88,28 @@ def check_dependencies():
             else:
                 cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
             
-            print(f" [+] Architecture detected ({machine}). Downloading from: {cf_url}")
-            urllib.request.urlretrieve(cf_url, cloudflared_path)
+            print(f" [+] Architecture detected: {sys_name} ({machine}). Downloading from: {cf_url}")
+            
+            if cf_url.endswith(".tgz"):
+                import tarfile
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix=".tgz", delete=False) as tmp_f:
+                    tmp_tar_path = tmp_f.name
+                urllib.request.urlretrieve(cf_url, tmp_tar_path)
+                with tarfile.open(tmp_tar_path, "r:gz") as tar:
+                    tar.extract("cloudflared", path=bin_dir)
+                try:
+                    os.remove(tmp_tar_path)
+                except Exception:
+                    pass
+            else:
+                urllib.request.urlretrieve(cf_url, cloudflared_path)
+                
             if os.name != "nt":
                 os.chmod(cloudflared_path, 0o755)
             print(" [✓] Cloudflare Tunnel binary downloaded successfully!")
         except Exception as err:
             print(f" [!] Notice: Automatic cloudflared download failed: {err}")
-
-def setup_ngrok():
-    is_termux = "TERMUX_VERSION" in os.environ or os.path.exists("/data/data/com.termux")
-    is_linux = platform.system().lower() == "linux"
-    
-    # Auto-check ngrok for Termux / Linux
-    if (is_termux or is_linux) and not shutil.which("ngrok"):
-        print(" [*] Ngrok not found in system PATH. Attempting automatic installation...")
-        if is_termux:
-            try:
-                subprocess.run(["pkg", "install", "-y", "tur-repo"], check=False)
-                subprocess.run(["pkg", "install", "-y", "ngrok"], check=False)
-            except Exception:
-                pass
-        elif is_linux:
-            print(" [i] On Linux, pyngrok will manage ngrok binary automatically.")
-
-    # Check for saved NGROK_AUTHTOKEN in environment / .env
-    token = os.environ.get("NGROK_AUTHTOKEN", "").strip()
-    env_path = os.path.join(os.path.dirname(__file__), ".env")
-    
-    if not token and (is_termux or is_linux):
-        print("\n" + "="*65)
-        print(" 🔑 NGROK AUTHTOKEN SETUP (Termux / Linux Public URL Forwarding)")
-        print("    Get your free token at: https://dashboard.ngrok.com/get-started/your-authtoken")
-        print("    This will be asked ONLY ONCE and saved to .env for future runs.")
-        print("="*65)
-        try:
-            token = input(" [>] Enter Ngrok AuthToken (or press Enter to skip): ").strip()
-            if token:
-                os.environ["NGROK_AUTHTOKEN"] = token
-                with open(env_path, "a", encoding="utf-8") as f:
-                    f.write(f"\nNGROK_AUTHTOKEN={token}\n")
-                print(" [✓] Ngrok AuthToken saved to .env file successfully!\n")
-        except Exception as e:
-            print(f" [!] Error saving token: {e}")
 
 def main():
     print(r"""
@@ -121,6 +120,7 @@ def main():
  |_|  |_|\____/|_|\_|____/  |_| |_____|_| \_(_)__|_| \_\_____|_____|\___/ 
                                                                            
                    🚀 MONSTER_URL 2.0 - TARGET & PUBLIC URL HUB
+                   🛡 Powered by Zero-Config Cloudflare Tunnel
     """)
 
     system_info = platform.system()
@@ -134,10 +134,9 @@ def main():
     print("-" * 65)
 
     load_env()
-    setup_ngrok()
     check_dependencies()
 
-    print("\n [*] Starting MONSTER_URL 2.0 Server & Automatic Public Tunnel...")
+    print("\n [*] Starting MONSTER_URL 2.0 Server & Automatic Cloudflare Public Tunnel...")
     print(" [*] Press Ctrl+C to stop the server anytime.\n")
 
     app_path = os.path.join(os.path.dirname(__file__), "app.py")

@@ -52,17 +52,9 @@ A lightweight, multi-platform Flask console built for real-time target telemetry
 
 ---
 
-## 🐧 Linux & 📱 Termux Setup (Ngrok Public URL Forwarding)
+## 🐧 Linux & 📱 Termux Setup (Cloudflare Public URL Forwarding)
 
-On Android (Termux) and Linux, **Ngrok** provides 100% stable public HTTPS URL forwarding.
-
-1. **Get Free Ngrok AuthToken**:
-   - Sign up for a free account at [https://dashboard.ngrok.com](https://dashboard.ngrok.com).
-   - Copy your free AuthToken from [Your AuthToken Page](https://dashboard.ngrok.com/get-started/your-authtoken).
-
-2. **First-Time Setup**:
-   - When launching `monster.py` or `./monster.sh` on Termux / Linux for the first time, you will be prompted **once** to enter your Ngrok AuthToken.
-   - The token will be saved to `.env` (`NGROK_AUTHTOKEN=...`) so you **never have to re-enter it on future launches**!
+**Cloudflare Tunnel** provides 100% zero-configuration public HTTPS URL forwarding without requiring any account registration or authtokens!
 
 ```bash
 # Linux
@@ -73,6 +65,7 @@ pkg update && pkg install -y python git openssh
 git clone https://github.com/Dr-MrBot/MONSTER_URL.git
 cd MONSTER_URL && pip install -r requirements.txt && bash monster.sh
 ```
+
 
 ---
 
